@@ -1,0 +1,55 @@
+OTA-INTERFACE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+TimeDateInfo ::= SEQUENCE {
+    year INTEGER,
+    mon INTEGER,
+    day INTEGER,
+    hour INTEGER,
+    min INTEGER,
+    sec INTEGER
+}
+
+OtaVersionInfo ::= SEQUENCE {
+    swMajor INTEGER,
+    swMinor INTEGER,
+    swPatch INTEGER,
+    name IA5String,
+    installedDate TimeDateInfo
+}
+
+OtaHwVersionInfo ::= SEQUENCE {
+    major INTEGER,
+    minor INTEGER,
+    revision IA5String,
+    mfgDate IA5String
+}
+
+OtaMessageType ::= ENUMERATED {
+    firmwarePing (1),
+    firmwarePingReply (2)
+}
+
+OtaDataProtocolType ::= ENUMERATED {
+    singleBlockAck (1),
+    multiAck (2)
+}
+
+OtaFirmwarePing ::= SEQUENCE {
+    swVersion OtaVersionInfo,
+    hwVersion OtaHwVersionInfo,
+    otaDataProtocol OtaDataProtocolType,
+    -- a multiple of 64k buffer for faster data download
+    bufferSizeBytes INTEGER,
+}
+
+OtaMessageDescr ::= CHOICE {
+    firmwrePing OtaFirmwarePing
+}
+
+OtaMessage ::= SEQUENCE {
+    version INTEGER,
+    OtaMessageDescr msg
+}
+
+END
+
