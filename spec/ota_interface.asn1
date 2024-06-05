@@ -9,46 +9,112 @@ TimeDateInfo ::= SEQUENCE {
     sec INTEGER
 }
 
-OtaVersionInfo ::= SEQUENCE {
+-- definition of the software information
+OtaSwVersionInfo ::= SEQUENCE {
     swMajor INTEGER,
     swMinor INTEGER,
     swPatch INTEGER,
-    name IA5String,
-    installedDate TimeDateInfo
+
+    -- made it optional
+    -- for a small device, no need to describe information of firmware name
+    -- optimize out the generated encoded stream
+    name IA5String OPTIONAL,
 }
 
 OtaHwVersionInfo ::= SEQUENCE {
     major INTEGER,
     minor INTEGER,
     revision IA5String,
-    mfgDate IA5String
+
+    -- cut down on encoded stream and for transmission
+    mfgDate IA5String OPTIONAL
 }
 
 OtaMessageType ::= ENUMERATED {
     firmwarePing (1),
-    firmwarePingReply (2)
+    firmwarePingReply (2),
+    dataRequest (3),
+    dataReply (4)
 }
 
 OtaDataProtocolType ::= ENUMERATED {
+    -- one ack for 31 data frames
     singleBlockAck (1),
+
+    -- one ack for each data frame
     multiAck (2)
 }
 
 OtaFirmwarePing ::= SEQUENCE {
-    swVersion OtaVersionInfo,
+    swVersion OtaSwVersionInfo,
+    installedDate TimeDateInfo,
     hwVersion OtaHwVersionInfo,
+    
     otaDataProtocol OtaDataProtocolType,
+    
     -- a multiple of 64k buffer for faster data download
     bufferSizeBytes INTEGER,
 }
 
+OtaFirmwareStatus ::= ENUMERATED {
+    newFirmwareAvailable (1),
+    noNewFirmware (2)
+}
+
+OtaFirmwarePingReply ::= SEQUENCE {
+    -- is there a new firmware or same old ?
+    firmwareStatus OtaFirmwareStatus,
+    
+    -- what's the version of new firmware if its new ?
+    swVersion OtaSwVersionInfo OPTIONAL,
+    
+    -- when this firmware was generated
+    createdDate TimeDateInfo OPTIONAL,
+
+    firmwareSizeBytes INTEGER OPTIONAL,
+
+    -- aggreed data protocol
+    otaDataProtocol OtaDataProtocolType OPTIONAL,
+
+    -- agreed buffer size
+    agreedBufferSizeBytes INTEGER OPTIONAL,
+}
+
+-- defines OTA data frame
+OtaDataFrame ::= SEQUENCE {
+    bytes OCTET STRING,
+    
+    -- an exmaple of block based transmissions
+    -- blockID 1 seq 0, 1, 2, 3, ... 30
+    -- blockId 2 seq 0, 1, 2, 3, ... 30
+    blockId INTEGER,
+
+    seqNumber INTEGER
+}
+
+OtaMissingBlockInfo :: SEQUENCE {
+    blockId INTEGER,
+
+    -- list of missed sequence numbers for a specific block
+    missedSeqNumbers SET OF INTEGER OPTIONAL
+}
+
+-- defines OTA data frame ack
+OtaDataFrameAck ::= SEQUENCE {
+    blockAck BOOLEAN,
+    missingBlocks SET OF OtaMissingBlockInfo
+}
+
 OtaMessageDescr ::= CHOICE {
-    firmwrePing OtaFirmwarePing
+    firmwrePing OtaFirmwarePing,
+    firmwarePingReply OtaFirmwarePingReply
+    dataFrame OtaDataFrame,
+    dataFrameAck OtaDataFrameAck
 }
 
 OtaMessage ::= SEQUENCE {
     version INTEGER,
-    OtaMessageDescr msg
+    msg OtaMessageDescr
 }
 
 END
